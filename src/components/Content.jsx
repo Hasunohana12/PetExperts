@@ -1,36 +1,33 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
-import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
-import SettingsSuggestRoundedIcon from '@mui/icons-material/SettingsSuggestRounded';
-import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
-import { SitemarkIcon } from './CustomIcons';
+import PetsRoundedIcon from '@mui/icons-material/PetsRounded';
+import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
+import MedicalServicesRoundedIcon from '@mui/icons-material/MedicalServicesRounded';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 
 const items = [
   {
-    icon: <SettingsSuggestRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Clínica veterinaría',
-    description:
-      'LAAAAAA.',
+    icon: <PetsRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Clínica veterinaria',
+    description: 'PET EXPERTS',
   },
   {
-    icon: <ConstructionRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Médicos',
-    description:
-      'Experience unmatched durability that goes above and beyond with lasting investment.',
+    icon: <GroupRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Usuarios permitidos:',
+    description: 'Médicos y Recepcionistas.',
   },
   {
-    icon: <ThumbUpAltRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Great user experience',
+    icon: <MedicalServicesRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Médicos:',
     description:
-      'Integrate our product into your routine with an intuitive and easy-to-use interface.',
+      'Procuren la actualización de sus estados y registros para llevar bien el orden y horario de los turnos.',
   },
   {
-    icon: <AutoFixHighRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Innovative functionality',
+    icon: <CalendarMonthRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Recepcionistas:',
     description:
-      'Stay ahead with features that set new standards, addressing your evolving needs better than the rest.',
+      'Estén atentos a cualquier cambio de horario para la asignación de turnos.',
   },
 ];
 
@@ -39,9 +36,6 @@ export default function Content() {
     <Stack
       sx={{ flexDirection: 'column', alignSelf: 'center', gap: 4, maxWidth: 450 }}
     >
-      <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-        <SitemarkIcon />
-      </Box>
       {items.map((item, index) => (
         <Stack key={index} direction="row" sx={{ gap: 2 }}>
           {item.icon}
