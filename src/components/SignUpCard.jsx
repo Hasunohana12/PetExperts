@@ -3,8 +3,16 @@ import { Box, Button, Card as MuiCard, FormLabel, FormControl, Link, TextField, 
 import axios from 'axios';
 
 const Card = styled(MuiCard)(({ theme }) => ({
-  display: 'flex', flexDirection: 'column', alignSelf: 'center', width: '100%', padding: theme.spacing(4), gap: theme.spacing(2),
-  boxShadow: 'hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px',
+  display: 'flex',
+  flexDirection: 'column',
+  alignSelf: 'center',
+  width: '100%',
+  padding: theme.spacing(4),
+  gap: theme.spacing(2),
+  backgroundColor: '#fff', 
+  boxShadow: '0px 5px 15px rgba(0, 0, 0, 0.1)',
+  borderRadius: '12px',
+  border: '1px solid #e0e0e0',
   [theme.breakpoints.up('sm')]: { width: '450px' },
 }));
 

@@ -4,9 +4,25 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const Card = styled(MuiCard)(({ theme }) => ({
-  display: 'flex', flexDirection: 'column', alignSelf: 'center', width: '100%', padding: theme.spacing(4), gap: theme.spacing(2),
-  boxShadow: 'hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px',
-  [theme.breakpoints.up('sm')]: { width: '450px' },
+  display: 'flex',
+  flexDirection: 'column',
+  alignSelf: 'center',
+  width: '100%',
+  padding: theme.spacing(4),
+  gap: theme.spacing(2),
+  margin: 'auto',
+  backgroundColor: '#ffffff!important', 
+  borderRadius: '12px', 
+  boxShadow:
+    '0px 10px 25px rgba(0,0,0,0.1), 0px 4px 10px rgba(0,0,0,0.05)', 
+  border: '1px solid #e0e0e0', 
+  [theme.breakpoints.up('sm')]: {
+    width: '450px',
+  },
+  ...theme.applyStyles('dark', {
+    boxShadow:
+      'hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px',
+  }),
 }));
 
 export default function SignInCard({ onSwitch }) {
@@ -36,7 +52,7 @@ try {
   };
 
   return (
-    <Card variant="outlined">
+      <Card elevation={5}>
       <Typography variant="h4">Iniciar sesión</Typography>
       <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <FormControl>

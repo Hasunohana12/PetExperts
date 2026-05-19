@@ -37,8 +37,8 @@ export default function SignInSide() {
         ))}
 
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={10} sx={{ alignItems: 'center' }}>
-          <Stack spacing={3} alignItems="center">
-            <Box sx={{ width: 110, height: 110, borderRadius: '50%', border: '4px solid #f4a6b3', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <Stack spacing={3} sx={{ alignItems: 'center' }}>
+              <Box sx={{ width: 110, height: 110, borderRadius: '50%', border: '4px solid #f4a6b3', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               <img src={logo} alt="Logo" style={{ width: '75%', height: '75%', objectFit: 'contain' }} />
             </Box>
             <Content />
