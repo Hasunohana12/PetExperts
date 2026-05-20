@@ -41,6 +41,8 @@ try {
         usuario: email, 
         contrasena: password 
       });
+
+      localStorage.setItem('usuario', JSON.stringify(response.data));
       
       alert(`Bienvenido ${response.data.nombre_completo}`);
       

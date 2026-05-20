@@ -1,11 +1,14 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SignInSide from './components/SignInSide';
+import PanelCentral from './panel/PanelCentral'; // El componente que va a decidir el rol
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<SignInSide />} />
+        <Route path="/turnos" element={<PanelCentral />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   );
