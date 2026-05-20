@@ -16,7 +16,6 @@ export default function PanelMedico({ usuario }) {
         Bienvenido, Dr/a. {usuario?.nombre_completo || 'Médico'}
       </Typography>
       
-      {/* Marcador de posición para tu tabla roja */}
       <Box sx={{ border: '3px solid #b51a4b', borderRadius: '20px', p: 8, bgcolor: '#fff', mb: 4 }}>
         <Typography color="textSecondary">Acá va tu hermosa tabla de turnos médicos</Typography>
       </Box>

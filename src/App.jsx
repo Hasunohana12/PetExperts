@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SignInSide from './components/SignInSide';
-import PanelCentral from './panel/PanelCentral'; // El componente que va a decidir el rol
+import PanelCentral from './panel/PanelCentral'; 
 
 function App() {
   return (
