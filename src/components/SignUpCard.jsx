@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box, Button, Card as MuiCard, FormLabel, FormControl, Link, TextField, Typography, styled, Select, MenuItem } from '@mui/material';
 import axios from 'axios';
+import { useState } from 'react';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -17,12 +18,13 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 export default function SignUpCard({ onSwitch }) {
+  const [showPassword, setShowPassword] = React.useState(false);
   const handleSubmit = async (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     
     try {
-      await axios.post('http://localhost:3001/registrar', {
+      await axios.post('http://172.16.4.245:3001/registrar', {
         nombre: data.get('nombre'),
         usuario: data.get('email'),
         contrasena: data.get('password'),
@@ -37,7 +39,7 @@ export default function SignUpCard({ onSwitch }) {
 
   return (
     <Card variant="outlined">
-      <Typography variant="h4">Regístrate</Typography>
+      <Typography variant="h4">Registro</Typography>
       <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <FormControl>
           <FormLabel>Nombre Completo</FormLabel>
@@ -47,9 +49,19 @@ export default function SignUpCard({ onSwitch }) {
           <FormLabel>Gmail</FormLabel>
           <TextField name="email" type="email" required fullWidth />
         </FormControl>
-        <FormControl>
-          <FormLabel>Contraseña</FormLabel>
-          <TextField name="password" type="password" required fullWidth />
+         <FormControl>
+         <FormLabel>Contraseña</FormLabel>
+         <TextField name="password" type ={showPassword ? "text" : "password"}
+         required
+         fullWidth
+          />
+
+          <label style={{ marginTop:'8px'}}>
+            <input
+            type= "checkbox" onChange={() => setShowPassword(!showPassword)}/>
+            Mostar Contraseña
+            </label>
+
         </FormControl>
         <FormControl>
           <FormLabel>Rol</FormLabel>
