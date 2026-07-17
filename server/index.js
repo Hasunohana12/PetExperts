@@ -77,7 +77,7 @@ app.post('/registrar', (req, res) => {
 });
 
 app.post('/agregar-turno', (req, res) => {
-    const { mascota, raza, especie, dueno, telefono, email, fecha, hora, motivo } = req.body;
+    const { mascota, raza, especie, dueno, telefono, email, fecha, hora, motivo, id_medico } = req.body;
 
     const queryDueno = "INSERT INTO duenos (nombre, telefono, email) VALUES ($1, $2, $3) RETURNING id_dueno";
 
@@ -97,9 +97,12 @@ app.post('/agregar-turno', (req, res) => {
             }
 
             const idMascotaGenerada = resultMascota.rows[0].id_mascota;
-            const queryTurno = "INSERT INTO turnos (fecha, hora, motivo, id_mascota, estado) VALUES ($1, $2, $3, $4, 'pendiente')";
+                const queryTurno = `
+                INSERT INTO turnos (fecha, hora, motivo, id_mascota, estado, id_medico) 
+                VALUES ($1, $2, $3, $4, 'pendiente', $5)
+            `;
 
-            db.query(queryTurno, [fecha, hora, motivo, idMascotaGenerada], (err, resultTurno) => {
+            db.query(queryTurno, [fecha, hora, motivo, idMascotaGenerada, id_medico || null], (err, resultTurno) => {
                 if (err) {
                     console.error("Error al agendar el turno:", err);
                     return res.status(500).send({ message: "Error al agendar el turno" });
@@ -115,6 +118,29 @@ app.post('/agregar-turno', (req, res) => {
                 res.send({ success: true, message: "Turno agendado :D" });
             });
         });
+    });
+});
+
+app.get('/api/medico/turnos/:id_medico', (req, res) => {
+    const { id_medico } = req.params;
+    const query = `
+        SELECT 
+            t.id_turno, t.fecha, t.hora, t.motivo, t.estado,
+            m.id_mascota, m.nombre_mascota AS mascota, m.raza, m.especie,
+            d.id_dueno, d.nombre AS dueno
+        FROM turnos t
+        INNER JOIN mascotas m ON t.id_mascota = m.id_mascota
+        INNER JOIN duenos d ON m.id_dueno = d.id_dueno
+        WHERE t.estado = 'pendiente' AND t.id_medico = $1
+        ORDER BY t.fecha ASC, t.hora ASC
+    `;
+
+    db.query(query, [id_medico], (err, result) => {
+        if (err) {
+            console.error("Error al obtener turnos del médico:", err);
+            return res.status(500).send({ message: "Error al traer los turnos asignados" });
+        }
+        res.send(result.rows);
     });
 });
 
@@ -137,6 +163,30 @@ app.get('/obtener-turnos', (req, res) => {
             return res.status(500).send({ message: "Error al traer los turnos con relaciones" });
         }
         res.send(result.rows);
+    });
+});
+
+app.put('/api/turnos/derivar/:id_turno', (req, res) => {
+    const { id_turno } = req.params;
+    const { id_medico_destino } = req.body;
+
+    if (!id_medico_destino) {
+        return res.status(400).send({ message: "Falta el ID del médico destino" });
+    }
+
+    const query = "UPDATE turnos SET id_medico = $1 WHERE id_turno = $2 AND estado = 'pendiente'";
+
+    db.query(query, [id_medico_destino, id_turno], (err, result) => {
+        if (err) {
+            console.error("Error al derivar el turno:", err);
+            return res.status(500).json({ success: false, message: "Error al procesar la derivación" });
+        }
+        
+        io.emit('notificar-nuevo-turno', {
+            mensaje: `Un paciente fue derivado a tu bandeja de atención.`
+        });
+
+        res.json({ success: true, message: "Paciente derivado exitosamente al nuevo profesional" });
     });
 });
 
@@ -432,6 +482,29 @@ app.get('/api/medico/pacientes-con-email', (req, res) => {
         if (err) {
             console.error("Error al obtener pacientes con email:", err);
             return res.status(500).send({ message: "Error al traer los pacientes" });
+        }
+        res.send(result.rows);
+    });
+});
+
+app.get('/api/medicos/disponibles', (req, res) => {
+    const query = `
+        SELECT 
+            id_usuario AS id_medico, 
+            nombre_completo AS nombre, 
+            COALESCE(especialidad, 'General') AS especialidad,
+            COALESCE(hora_entrada, '08:00:00') AS hora_entrada,
+            COALESCE(hora_salida, '16:00:00') AS hora_salida,
+            true AS activo
+        FROM usuarios 
+        WHERE rol = 'medico'
+        ORDER BY nombre_completo ASC
+    `;
+
+    db.query(query, (err, result) => {
+        if (err) {
+            console.error("Error al obtener médicos:", err);
+            return res.status(500).send({ message: "Error al traer los médicos" });
         }
         res.send(result.rows);
     });

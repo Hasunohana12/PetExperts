@@ -5,8 +5,9 @@ import {
   Box, Typography, Avatar, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
   TextField, Button, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Divider,
-  Snackbar, Alert, Badge, Menu, MenuItem
+  Snackbar, Alert, Badge, Menu, MenuItem,
 } from '@mui/material';
+
 import {
   Home, CalendarMonth, History, AppRegistration, Notifications,
   ExitToApp, MoreVert, Chat, ForwardToInbox, PictureAsPdf
@@ -14,6 +15,10 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ShuffleIcon from '@mui/icons-material/Shuffle';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
 import logoVeterinaria from '../assets/logo.PNG';
 import { io } from 'socket.io-client';
 
@@ -68,6 +73,20 @@ export default function PanelCentral() {
   const [editFormData, setEditFormData] = useState({
     id_turno: '', mascota: '', raza: '', especie: '', dueno: '', fecha: '', hora: '', motivo: ''
   });
+
+  const [medicosDisponibles, setMedicosDisponibles] = useState([]);
+  const [openDerivarModal, setOpenDerivarModal] = useState(false);
+  const [turnoSeleccionadoParaDerivar, setTurnoSeleccionadoParaDerivar] = useState(null);
+
+  const turnosDeHoy = turnos.filter((turno) => {
+    const fechaTurno = new Date(turno.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
+    const fechaActual = new Date().toLocaleDateString('es-AR');
+
+    return fechaTurno === fechaActual;
+  });
+
+  const [idMedicoDestino, setIdMedicoDestino] = useState('');
+  const [idMedicoLogueado, setIdMedicoLogueado] = useState('ID_DEL_MEDICO_ACTUAL');
 
   useEffect(() => {
     const opciones = { month: 'long', day: 'numeric' };
@@ -273,6 +292,54 @@ export default function PanelCentral() {
       setAlertaSistema({ abierto: true, titulo: "Error", mensaje: "Error al procesar la atención médica." });
     }
   };
+
+  const handleConfirmarDerivacion = async () => {
+    if (!idMedicoDestino || !turnoSeleccionadoParaDerivar) return;
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/turnos/derivar/${turnoSeleccionadoParaDerivar.id_turno}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id_medico_destino: idMedicoDestino }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setTurnos((prevTurnos) =>
+          prevTurnos.filter((t) => t.id_turno !== turnoSeleccionadoParaDerivar.id_turno)
+        );
+
+        setOpenDerivarModal(false);
+        setIdMedicoDestino('');
+        setTurnoSeleccionadoParaDerivar(null);
+
+        alert('Paciente derivado con éxito');
+      } else {
+        alert(data.message || 'Hubo un error al intentar derivar el paciente');
+      }
+    } catch (error) {
+      console.error('Error en la conexión al derivar:', error);
+      alert('Error de conexión con el servidor');
+    }
+  };
+  useEffect(() => {
+    const cargarMedicos = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/medicos/disponibles');
+        if (response.ok) {
+          const data = await response.json();
+          setMedicosDisponibles(data);
+        }
+      } catch (error) {
+        console.error("Error al cargar la lista de médicos:", error);
+      }
+    };
+
+    cargarMedicos();
+  }, []);
 
   const handleActualizarTurno = async (e) => {
     e.preventDefault();
@@ -728,7 +795,9 @@ export default function PanelCentral() {
             case 'REGISTRO':
               return (
                 <Paper component="form" onSubmit={handleGuardarTurno} sx={{ p: 4, border: '4px solid #b51a4b', borderRadius: '24px' }}>
-                  <Typography variant="h5" sx={{ color: '#b51a4b', fontWeight: 'bold', mb: 3 }}>Registrar Nuevo Turno Médico</Typography>
+                  <Typography variant="h5" sx={{ color: '#b51a4b', fontWeight: 'bold', mb: 3 }}>
+                    Registrar Nuevo Turno Médico
+                  </Typography>
                   <Grid container spacing={3}>
                     <Grid item xs={12} sm={6}><TextField label="Nombre Mascota" name="mascota" value={formData.mascota} onChange={handleInputChange} fullWidth required /></Grid>
                     <Grid item xs={12} sm={6}><TextField label="Especie" name="especie" value={formData.especie} onChange={handleInputChange} fullWidth /></Grid>
@@ -736,6 +805,27 @@ export default function PanelCentral() {
                     <Grid item xs={12} sm={6}><TextField label="Nombre Dueño" name="dueno" value={formData.dueno} onChange={handleInputChange} fullWidth required /></Grid>
                     <Grid item xs={12} sm={6}><TextField label="Teléfono" name="telefono" value={formData.telefono} onChange={handleInputChange} fullWidth required /></Grid>
                     <Grid item xs={12} sm={6}><TextField label="Email (opcional)" name="email" value={formData.email} onChange={handleInputChange} fullWidth /></Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        label="Asignar Médico Veterinario"
+                        name="id_medico"
+                        value={formData.id_medico || ''}
+                        onChange={handleInputChange}
+                        fullWidth
+                        required
+                        SelectProps={{ displayEmpty: true }}
+                      >
+                        <MenuItem value="" disabled><em>-- Seleccione un profesional --</em></MenuItem>
+                        {medicosDisponibles.map((med) => (
+                          <MenuItem key={med.id_medico} value={med.id_medico}>
+                            Dr. {med.nombre} ({med.especialidad || 'General'})
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+
                     <Grid item xs={12} sm={6}><TextField type="date" name="fecha" value={formData.fecha} onChange={handleInputChange} fullWidth required slotProps={{ inputLabel: { shrink: true } }} label="Fecha Turno" /></Grid>
                     <Grid item xs={12} sm={6}><TextField type="time" name="hora" value={formData.hora} onChange={handleInputChange} fullWidth required slotProps={{ inputLabel: { shrink: true } }} label="Hora Turno" /></Grid>
                     <Grid item xs={12}><TextField label="Motivo de la Consulta" name="motivo" value={formData.motivo} onChange={handleInputChange} fullWidth multiline rows={3} /></Grid>
@@ -746,6 +836,61 @@ export default function PanelCentral() {
                     </Grid>
                   </Grid>
                 </Paper>
+              );
+            case 'MEDICOS':
+              return (
+                <Box sx={{ width: '100%' }}>
+                  <Typography variant="h5" sx={{ color: '#b51a4b', fontWeight: 'bold', mb: 3 }}>
+                    Médicos Veterinarios Disponibles Hoy
+                  </Typography>
+
+                  <TableContainer component={Paper} sx={{ border: '4px solid #b51a4b', borderRadius: '24px', overflow: 'hidden', boxShadow: 'none' }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: '#ffffff' }}>
+                          {['VETERINARIO', 'ESPECIALIDAD', 'HORARIO DE ATENCIÓN', 'ESTADO'].map((col) => (
+                            <TableCell key={col} align="center" sx={{ color: '#b51a4b', fontWeight: 'bold', borderBottom: '4px solid #b51a4b', borderRight: '1px solid #e0e0e0' }}>
+                              {col}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+
+                      <TableBody>
+                        {medicosDisponibles.length > 0 ? (
+                          medicosDisponibles.map((med) => (
+                            <TableRow key={med.id_medico} sx={{ '&:nth-of-type(even)': { bgcolor: '#fdfbf7' } }}>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0', fontWeight: 'bold' }}>
+                                {med.nombre}
+                              </TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>
+                                {med.especialidad || 'General'}
+                              </TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0', fontWeight: 'bold', color: '#333' }}>
+                                {med.hora_entrada?.substring(0, 5)} hs a {med.hora_salida?.substring(0, 5)} hs
+                              </TableCell>
+                              <TableCell align="center">
+                                <Typography variant="caption" sx={{
+                                  color: med.activo ? '#2e7d32' : '#d32f2f',
+                                  bgcolor: med.activo ? '#e8f5e9' : '#ffebee',
+                                  px: 1.5, py: 0.5, borderRadius: '6px', fontWeight: 'bold'
+                                }}>
+                                  {med.activo ? '● EN CLINICA' : '○ AUSENTE'}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center" sx={{ py: 4, color: '#999' }}>
+                              No hay médicos registrados para el día de hoy.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
               );
 
             case 'CALENDARIO':
@@ -934,104 +1079,138 @@ export default function PanelCentral() {
             case 'HISTORIAL':
             default:
               return (
-                <TableContainer component={Paper} sx={{ border: '4px solid #b51a4b', borderRadius: '24px', overflow: 'hidden', boxShadow: 'none' }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: '#ffffff' }}>
-                        {['MASCOTA', 'RAZA', 'ESPECIE', 'DUEÑO', 'FECHA', 'HORA', 'MOTIVO'].map((col) => (
-                          <TableCell key={col} align="center" sx={{ color: '#b51a4b', fontWeight: 'bold', borderBottom: '4px solid #b51a4b', borderRight: '1px solid #e0e0e0' }}>
-                            {col}
-                          </TableCell>
-                        ))}
-                        <TableCell align="center" sx={{ color: '#b51a4b', fontWeight: 'bold', borderBottom: '4px solid #b51a4b' }}>
-                          {seccionActiva === 'HISTORIAL' || rol === 'medico' ? 'ESTADO' : 'ACCIONES'}
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
+                <Box sx={{ width: '100%' }}>
 
-                    <TableBody>
-                      {turnos.length > 0 ? (
-                        turnos.map((turno) => (
-                          <TableRow key={turno.id_turno} sx={{ '&:nth-of-type(even)': { bgcolor: '#fdfbf7' } }}>
-                            <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0', fontWeight: 'bold' }}>{turno.mascota}</TableCell>
-                            <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.raza || '-'}</TableCell>
-                            <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.especie || '-'}</TableCell>
-                            <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.dueno}</TableCell>
-                            <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>
-                              {turno.fecha ? turno.fecha.split('T')[0].split('-').reverse().join('/') : '-'}
+                  <Typography variant="h5" sx={{ color: '#b51a4b', fontWeight: 'bold', mb: 3 }}>
+                    {seccionActiva === 'HISTORIAL' ? 'Historial de Turnos Médicos' : 'Control y Gestión de Turnos'}
+                  </Typography>
+
+                  {rol === 'medico' && seccionActiva === 'PRINCIPAL' && (
+                    <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                      <Paper elevation={0} sx={{ p: 3, border: '2px solid #b51a4b', borderRadius: '16px', bgcolor: '#fdfbf7', minWidth: 250 }}>
+                        <Typography variant="subtitle2" sx={{ color: '#b51a4b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
+                          Pacientes Asignados Hoy
+                        </Typography>
+                        <Typography variant="h3" sx={{ fontWeight: 'bold', my: 1 }}>
+                          {turnosDeHoy.length}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'gray' }}>
+                          Consultas pendientes en tu bandeja
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  )}
+
+                  <TableContainer component={Paper} sx={{ border: '4px solid #b51a4b', borderRadius: '24px', overflow: 'hidden', boxShadow: 'none' }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: '#ffffff' }}>
+                          {['MASCOTA', 'RAZA', 'ESPECIE', 'DUEÑO', 'FECHA', 'HORA', 'MOTIVO'].map((col) => (
+                            <TableCell key={col} align="center" sx={{ color: '#b51a4b', fontWeight: 'bold', borderBottom: '4px solid #b51a4b', borderRight: '1px solid #e0e0e0' }}>
+                              {col}
                             </TableCell>
-                            <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.hora.substring(0, 5)}</TableCell>
-                            <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.motivo || '-'}</TableCell>
-
-                            <TableCell align="center">
-                              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-
-                                {seccionActiva === 'HISTORIAL' && (
-                                  turno.estado === 'atendido' ? (
-                                    <Typography variant="caption" sx={{
-                                      color: '#2e7d32',
-                                      bgcolor: '#e8f5e9',
-                                      px: 1.5, py: 0.5,
-                                      borderRadius: '6px',
-                                      fontWeight: 'bold'
-                                    }}>
-                                      ✓ ATENDIDO
-                                    </Typography>
-                                  ) : (
-                                    <Typography variant="caption" sx={{
-                                      color: '#d32f2f',
-                                      bgcolor: '#ffebee',
-                                      px: 1.5, py: 0.5,
-                                      borderRadius: '6px',
-                                      fontWeight: 'bold'
-                                    }}>
-                                      ✕ NO ASISTIÓ
-                                    </Typography>
-                                  )
-                                )}
-                                {rol === 'recepcionista' && seccionActiva === 'PRINCIPAL' && (
-                                  <>
-                                    <IconButton onClick={() => handleAbrirEditar(turno)} sx={{ color: '#b51a4b' }} size="small" title="Editar">
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton onClick={() => handleEliminarTurno(turno.id_turno)} sx={{ color: '#d32f2f' }} size="small" title="Eliminar">
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </>
-                                )}
-
-                                {rol === 'medico' && seccionActiva === 'PRINCIPAL' && (
-                                  <Button
-                                    variant="contained"
-                                    size="small"
-                                    startIcon={<CheckCircleIcon />}
-                                    onClick={() => handleAtenderTurno(turno.id_turno)}
-                                    sx={{
-                                      bgcolor: '#2e7d32',
-                                      '&:hover': { bgcolor: '#1b5e20' },
-                                      textTransform: 'none',
-                                      fontWeight: 'bold',
-                                      borderRadius: '8px'
-                                    }}
-                                  >
-                                    Atender
-                                  </Button>
-                                )}
-
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={8} align="center" sx={{ py: 4, color: '#999' }}>
-                            No hay turnos registrados en este listado.
+                          ))}
+                          <TableCell align="center" sx={{ color: '#b51a4b', fontWeight: 'bold', borderBottom: '4px solid #b51a4b' }}>
+                            {seccionActiva === 'HISTORIAL' || rol === 'medico' ? 'ESTADO' : 'ACCIONES'}
                           </TableCell>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+
+                      <TableBody>
+                        {turnos.length > 0 ? (
+                          turnos.map((turno) => (
+                            <TableRow key={turno.id_turno} sx={{ '&:nth-of-type(even)': { bgcolor: '#fdfbf7' } }}>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0', fontWeight: 'bold' }}>{turno.mascota}</TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.raza || '-'}</TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.especie || '-'}</TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.dueno}</TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>
+                                {turno.fecha ? turno.fecha.split('T')[0].split('-').reverse().join('/') : '-'}
+                              </TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.hora.substring(0, 5)}</TableCell>
+                              <TableCell align="center" sx={{ borderRight: '1px solid #f0f0f0' }}>{turno.motivo || '-'}</TableCell>
+
+                              <TableCell align="center">
+                                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+
+                                  {seccionActiva === 'HISTORIAL' && (
+                                    turno.estado === 'atendido' ? (
+                                      <Typography variant="caption" sx={{ color: '#2e7d32', bgcolor: '#e8f5e9', px: 1.5, py: 0.5, borderRadius: '6px', fontWeight: 'bold' }}>
+                                        ✓ ATENDIDO
+                                      </Typography>
+                                    ) : (
+                                      <Typography variant="caption" sx={{ color: '#d32f2f', bgcolor: '#ffebee', px: 1.5, py: 0.5, borderRadius: '6px', fontWeight: 'bold' }}>
+                                        ✕ NO ASISTIÓ
+                                      </Typography>
+                                    )
+                                  )}
+
+                                  {rol === 'recepcionista' && seccionActiva === 'PRINCIPAL' && (
+                                    <>
+                                      <IconButton onClick={() => handleAbrirEditar(turno)} sx={{ color: '#b51a4b' }} size="small" title="Editar">
+                                        <EditIcon fontSize="small" />
+                                      </IconButton>
+                                      <IconButton onClick={() => handleEliminarTurno(turno.id_turno)} sx={{ color: '#d32f2f' }} size="small" title="Eliminar">
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    </>
+                                  )}
+
+                                  {rol === 'medico' && seccionActiva === 'PRINCIPAL' && (
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                      <Button
+                                        variant="contained"
+                                        size="small"
+                                        startIcon={<CheckCircleIcon />}
+                                        onClick={() => handleAtenderTurno(turno.id_turno)}
+                                        sx={{
+                                          bgcolor: '#2e7d32',
+                                          '&:hover': { bgcolor: '#1b5e20' },
+                                          textTransform: 'none',
+                                          fontWeight: 'bold',
+                                          borderRadius: '8px'
+                                        }}
+                                      >
+                                        Atender
+                                      </Button>
+
+                                      <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<ShuffleIcon />}
+                                        onClick={() => {
+                                          setTurnoSeleccionadoParaDerivar(turno);
+                                          setOpenDerivarModal(true);
+                                        }}
+                                        sx={{
+                                          color: '#b51a4b',
+                                          borderColor: '#b51a4b',
+                                          '&:hover': { bgcolor: '#fcd1d7', borderColor: '#b51a4b' },
+                                          textTransform: 'none',
+                                          fontWeight: 'bold',
+                                          borderRadius: '8px'
+                                        }}
+                                      >
+                                        Derivar
+                                      </Button>
+                                    </Box>
+                                  )}
+
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={8} align="center" sx={{ py: 4, color: '#999' }}>
+                              No hay turnos registrados en este listado.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
               );
           }
         })()}
@@ -1103,6 +1282,57 @@ export default function PanelCentral() {
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      <Dialog open={openDerivarModal} onClose={() => setOpenDerivarModal(false)}>
+
+        <DialogTitle style={{ backgroundColor: '#b51a4b', color: 'white' }}>
+          Derivar Paciente Urgente
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography sx={{ mt: 2, mb: 2 }}>
+            Vas a transferir la consulta de la mascota <strong>{turnoSeleccionadoParaDerivar?.mascota}</strong> a otro profesional disponible.
+          </Typography>
+          <FormControl fullWidth sx={{ mt: 1 }}>
+            <InputLabel id="select-medico-label">Seleccionar Médico Destino *</InputLabel>
+
+            <Select
+              labelId="select-medico-label"
+              value={idMedicoDestino}
+              onChange={(e) => setIdMedicoDestino(e.target.value)}
+              label="Seleccionar Médico Destino *"
+              displayEmpty
+              renderValue={(selected) => {
+                if (!selected) {
+                  return <em style={{ color: '#aaa' }}>Seleccione un Colega</em>;
+                }
+                const medico = medicosDisponibles.find(m => m.id_medico === selected);
+                return medico ? `${medico.nombre} (${medico.especialidad})` : '';
+              }}
+            >
+              <MenuItem disabled value="">
+                <em>Seleccione un Colega</em>
+              </MenuItem>
+
+              {medicosDisponibles
+                .filter((medico) => medico.id_medico !== idMedicoLogueado)
+                .map((medico) => (
+                  <MenuItem key={medico.id_medico} value={medico.id_medico}>
+                    {medico.nombre} — <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '5px' }}>{medico.especialidad}</span>
+                  </MenuItem>
+                ))
+              }
+            </Select>
+          </FormControl>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenDerivarModal(false)}>Cancelar</Button>
+          <Button onClick={handleConfirmarDerivacion} variant="contained" disabled={!idMedicoDestino}>
+            Confirmar Derivación
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Snackbar

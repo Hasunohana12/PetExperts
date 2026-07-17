@@ -19,6 +19,8 @@ const Card = styled(MuiCard)(({ theme }) => ({
 
 export default function SignUpCard({ onSwitch }) {
   const [showPassword, setShowPassword] = React.useState(false);
+  const [rol, setRol] = useState('recepcionista');
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -28,7 +30,8 @@ export default function SignUpCard({ onSwitch }) {
         nombre: data.get('nombre'),
         usuario: data.get('email'),
         contrasena: data.get('password'),
-        rol: data.get('rol')
+        rol: data.get('rol'),
+        especialidad: data.get('rol') === 'medico' ? data.get('especialidad') : null
       });
       alert("Registro exitoso");
       onSwitch();
@@ -49,27 +52,41 @@ export default function SignUpCard({ onSwitch }) {
           <FormLabel>Gmail</FormLabel>
           <TextField name="email" type="email" required fullWidth />
         </FormControl>
-         <FormControl>
-         <FormLabel>Contraseña</FormLabel>
-         <TextField name="password" type ={showPassword ? "text" : "password"}
-         required
-         fullWidth
-          />
-
-          <label style={{ marginTop:'8px'}}>
-            <input
-            type= "checkbox" onChange={() => setShowPassword(!showPassword)}/>
-            Mostar Contraseña
-            </label>
-
+        <FormControl>
+          <FormLabel>Contraseña</FormLabel>
+          <TextField name="password" type ={showPassword ? "text" : "password"} required fullWidth />
+          <label style={{ marginTop:'8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <input type= "checkbox" onChange={() => setShowPassword(!showPassword)}/>
+            Mostrar Contraseña
+          </label>
         </FormControl>
+        
         <FormControl>
           <FormLabel>Rol</FormLabel>
-          <Select name="rol" defaultValue="recepcionista">
+          <Select 
+            name="rol" 
+            value={rol} 
+            onChange={(e) => setRol(e.target.value)}
+          >
             <MenuItem value="recepcionista">Recepcionista</MenuItem>
             <MenuItem value="medico">Médico</MenuItem>
           </Select>
         </FormControl>
+
+        {rol === 'medico' && (
+          <FormControl required>
+            <FormLabel>Especialidad Médica</FormLabel>
+            <Select name="especialidad" defaultValue="Clínica General">
+              <MenuItem value="Clínica General">Clínica General</MenuItem>
+              <MenuItem value="Cirugía Veterinaria">Cirugía Veterinaria</MenuItem>
+              <MenuItem value="Cardiología">Cardiología</MenuItem>
+              <MenuItem value="Dermatología">Dermatología</MenuItem>
+              <MenuItem value="Fisiatría / Rehabilitación">Fisiatría / Rehabilitación</MenuItem>
+              <MenuItem value="Odontología">Odontología</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+
         <Button type="submit" fullWidth variant="contained">Crear Cuenta</Button>
         <Typography sx={{ textAlign: 'center' }}>
           ¿Ya tienes cuenta? <Link component="button" type="button" onClick={onSwitch}>Inicia sesión</Link>
